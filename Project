@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun  8 18:30:11 2022
+
+@author: Jerrod
+"""
+
+import numpy as np
+import os as os
+from zipfile import ZipFile
+from numpy import genfromtxt
+import datetime
+
+#USER INPUTS - CHECK BEFORE YOU RUN!
+Countries = ['CA','DE','FR','GB','IN','US']               #Countries to include
+columns = (0,1,4,7,8,9,12,13,14)                                    #Columns for clustering
+path = "C:/Users/Jerrod/Documents/UHart/QNT755/Project/youtube/"    #Location of files
+#END USER INPUTS
+
+#Set current working directory to file location
+os.chdir(path)
+
+#For each country:
+for i in np.arange(0,len(Countries)):
+    
+    #Target ZIP for this country
+    it_path = "%s%svideos.csv.zip" % (path,Countries[i])
+
+    #Extract ZIP
+    with ZipFile(it_path, 'r') as zip:
+        zip.extractall()
+
+    #Target unzipped CSV    
+    it_path = "%s%svideos.csv" % (path,Countries[i])    
+
+    #Generate NumPy array from CSV 
+    data = genfromtxt(it_path,delimiter=',',names=True,
+                  invalid_raise=False,usecols=columns,encoding='utf-8',
+                  dtype=('S100','S32','i4',
+                         'int32','int32','int32',
+                         '?','?','?'))
+
+    #New dtype for Country Code
+    dtype = data.dtype.descr + [('country_code','U10')]
+
+    #Create new array which includes extra column for country code
+    country_data = np.empty((len(data)),dtype=dtype)
+
+    #Create a list of headers
+    headers = ()
+    for j in country_data.dtype.descr:
+        headers = np.append(headers,j[0])
+
+    #Map original data columns to new array
+    for k in np.arange(0,len(headers)-1):
+        country_data[headers[k]] = data[headers[k]]
+    
+    #Add new column for country code 
+    country_data['country_code'] = Countries[i]
+
+    #Append data to new compiled CSV
+    with open('complied_data.csv','a') as csvfile:
+        np.savetxt(csvfile, country_data, delimiter=",",
+                   fmt=('%s','%s','%i','%i','%i',
+               '%i','%s','%s','%s','%s'))
+    
+    #Delete original CSV
+    os.remove("%svideos.csv" % (Countries[i]))
